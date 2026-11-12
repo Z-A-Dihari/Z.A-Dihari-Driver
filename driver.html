@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z.A Dihari App - Driver</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: #0f172a; color: #f8fafc; }
+        .auth-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .auth-card { background: #1e293b; padding: 28px; border-radius: 16px; width: 100%; max-width: 440px; border: 1px solid #334155; }
+        .brand-logo { text-align: center; margin-bottom: 18px; }
+        .brand-logo i { font-size: 36px; color: #f59e0b; }
+        .brand-logo h2 { font-size: 22px; margin-top: 5px; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; font-weight: 600; }
+        .input-group input, .input-group select { width: 100%; padding: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; color: #fff; font-size: 14px; }
+        .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: #f59e0b; color: #0f172a; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .toggle-link { text-align: center; margin-top: 15px; font-size: 14px; color: #f59e0b; cursor: pointer; font-weight: 600; }
+        #dashboard { display: none; }
+        header { background: #1e293b; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .user-dp { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; }
+        .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; background: #1e293b; overflow-x: hidden; transition: 0.3s; z-index: 2000; padding-top: 60px; border-right: 1px solid #334155; }
+        .sidebar a { padding: 14px 22px; text-decoration: none; font-size: 15px; color: #cbd5e1; display: block; cursor: pointer; border-bottom: 1px solid #334155; }
+        .sidebar a:hover { background: #334155; color: #f59e0b; }
+        .container { max-width: 650px; margin: 20px auto; padding: 0 15px; }
+        .radar-box { text-align: center; padding: 40px 20px; background: #1e293b; border-radius: 16px; border: 1px solid #334155; margin-bottom: 20px; }
+        .radar-spinner { width: 70px; height: 70px; border: 4px solid #334155; border-top: 4px solid #f59e0b; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .ride-card { background: #1e293b; padding: 16px; border-radius: 14px; border: 1px solid #334155; margin-bottom: 12px; cursor: pointer; }
+        #rideDetailPanel { display: none; background: #1e293b; padding: 18px; border-radius: 16px; border: 1px solid #f59e0b; margin-bottom: 20px; }
+        #driverMap { height: 240px; width: 100%; border-radius: 12px; margin: 12px 0; }
+        .chat-box { border: 1px solid #334155; border-radius: 12px; overflow: hidden; background: #0f172a; margin-top: 15px; }
+        .chat-msgs { height: 220px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 8px 12px; border-radius: 10px; max-width: 78%; font-size: 13px; }
+        .msg.me { background: #f59e0b; color: #0f172a; font-weight: 600; align-self: flex-end; }
+        .msg.them { background: #1e293b; color: #fff; align-self: flex-start; }
+        .chat-controls { display: flex; padding: 8px; gap: 6px; background: #1e293b; }
+        .chat-controls input { flex: 1; padding: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; }
+        .modal-box { background: #1e293b; padding: 24px; border-radius: 16px; max-width: 450px; width: 100%; border: 1px solid #334155; }
+        #toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: #0f172a; padding: 10px 22px; border-radius: 25px; font-weight: 700; display: none; z-index: 4000; }
+    </style>
+</head>
+<body>
+    <div id="toast">Notification</div>
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-box" id="modalContent"></div>
+    </div>
+
+    <div id="sideMenu" class="sidebar">
+        <a onclick="closeMenu()" style="text-align:right; font-size:22px; color:#f59e0b;">&times;</a>
+        <a onclick="openProfileModal()"><i class="fas fa-user-circle"></i> Profile</a>
+        <a onclick="openPerformanceModal()"><i class="fas fa-chart-line"></i> Performance & History</a>
+        <a onclick="openSupportModal()"><i class="fas fa-headset"></i> Support</a>
+        <a onclick="logout()" style="color:#ef4444;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+
+    <div id="authScreen" class="auth-wrap">
+        <div class="auth-card">
+            <div class="brand-logo">
+                <i class="fas fa-motorcycle"></i>
+                <h2>Z.A Dihari App</h2>
+                <p style="font-size:13px; color:#94a3b8;">Driver Portal</p>
+            </div>
+            <form id="driverAuthForm" onsubmit="handleAuth(event)">
+                <div id="signupFields">
+                    <div class="input-group"><label>Full Name</label><input type="text" id="drvName" placeholder="Enter full name" required></div>
+                    <div class="input-group"><label>Vehicle Type</label><select id="drvVehicle"><option value="Rickshaw">Rickshaw</option><option value="Bike">Bike</option></select></div>
+                    <div class="input-group"><label>Vehicle / Rickshaw Number</label><input type="text" id="drvVehicleNum" placeholder="e.g. LE-21-5678" required></div>
+                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="drvCnic" maxlength="13" minlength="13" placeholder="3520212345671" required></div>
+                    <div class="input-group"><label>Profile DP</label><input type="file" id="drvDp" accept="image/*"></div>
+                    <div class="input-group"><label>CNIC Pic</label><input type="file" id="drvCnicPic" accept="image/*" required></div>
+                    <div class="input-group"><label>Vehicle Pic</label><input type="file" id="drvVehiclePic" accept="image/*" required></div>
+                    <div class="input-group"><label>Registration Copy</label><input type="file" id="drvCopyPic" accept="image/*" required></div>
+                </div>
+                <div class="input-group"><label>Phone Number (11 Digits)</label><input type="tel" id="drvPhone" maxlength="11" minlength="11" placeholder="03001234567" required></div>
+                <div class="input-group"><label>Password</label><input type="password" id="drvPass" placeholder="Password" required></div>
+                <button type="submit" class="btn btn-primary" id="drvSubmitBtn">Register Driver</button>
+            </form>
+            <div class="toggle-link" onclick="toggleAuthMode()"><span id="toggleAuthText">Already registered? Login</span></div>
+        </div>
+    </div>
+
+    <div id="dashboard">
+        <header>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <i class="fas fa-bars" style="font-size:22px; cursor:pointer; color:#f59e0b;" onclick="openMenu()"></i>
+                <img id="navDp" src="https://via.placeholder.com/40?text=D" class="user-dp">
+                <div style="font-weight:700; font-size:15px;" id="navName">Driver</div>
+            </div>
+        </header>
+        <div class="container">
+            <div class="radar-box">
+                <div class="radar-spinner"></div>
+                <h3 style="color:#f59e0b;">Finding a Passenger...</h3>
+                <p style="font-size:13px; color:#94a3b8; margin-top:5px;">Scanning nearby ride requests</p>
+            </div>
+            <div id="rideDetailPanel">
+                <h4><i class="fas fa-route"></i> Ride Route Preview</h4>
+                <div id="driverMap"></div>
+                <div id="rideTextDetails" style="font-size:13px; line-height:1.6; background:#0f172a; padding:12px; border-radius:10px; margin-bottom:12px;"></div>
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <input type="number" id="driverBidInput" style="flex:1; padding:11px; background:#0f172a; border:1px solid #f59e0b; border-radius:8px; color:#fff;">
+                    <button class="btn btn-success" style="width:auto;" onclick="submitDriverBid()">Send Offer</button>
+                </div>
+            </div>
+            <div id="activeTripSection" class="hidden" style="background:#1e293b; padding:18px; border-radius:16px; border:2px solid #10b981; margin-bottom:20px;">
+                <h4 style="color:#10b981;"><i class="fas fa-handshake"></i> Active Ride Confirmed</h4>
+                <div id="passengerInfoBox" style="margin:10px 0; font-size:14px;"></div>
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <button class="btn btn-primary" onclick="startNavigation('pickup')">Navigate to Pickup</button>
+                    <button class="btn btn-success" onclick="markArrived()">I am here</button>
+                    <button class="btn btn-primary" onclick="startNavigation('drop')">Navigate to Drop</button>
+                </div>
+                <div class="chat-box">
+                    <div class="chat-msgs" id="chatMsgs"></div>
+                    <div class="chat-controls">
+                        <input type="text" id="chatInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendChatMsg()">
+                        <button class="btn btn-primary" style="width:auto; padding:0 14px;" onclick="sendChatMsg()">Send</button>
+                    </div>
+                </div>
+            </div>
+            <h4 style="margin-bottom:12px; color:#cbd5e1;">Nearby Rides (4 km)</h4>
+            <div id="ridesFeedList"><p style="color:#64748b;">Scanning...</p></div>
+        </div>
+    </div>
+
+    <script>
+        // Updated Firebase Config from your screenshot
+        const firebaseConfig = {
+            apiKey: "AIzaSyDzga11KOZOxNJiUx_xeU39xCE6zkJDHjI",
+            authDomain: "zadihari-5f746.firebaseapp.com",
+            projectId: "zadihari-5f746",
+            storageBucket: "zadihari-5f746.firebasestorage.app",
+            messagingSenderId: "75266444616",
+            appId: "1:75266444616:web:297e9633569bde90a0f77d",
+            measurementId: "G-FVSX3NDNPY"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let deviceId = localStorage.getItem('za_drv_device_id') || 'drv_' + Math.random().toString(36).substr(2, 12);
+        localStorage.setItem('za_drv_device_id', deviceId);
+
+        let isLoginMode = false, driverLocation = { lat: 31.5204, lng: 74.3587 };
+        let driverMap, selectedRide = null, activeRideId = null;
+
+        function toast(msg) {
+            const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+        function openMenu() { document.getElementById('sideMenu').style.width = '250px'; }
+        function closeMenu() { document.getElementById('sideMenu').style.width = '0'; }
+
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                if (!file) { resolve(''); return; }
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image(); img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas'); const scale = 300 / img.width;
+                        canvas.width = 300; canvas.height = img.height * scale;
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.65));
+                    };
+                };
+            });
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('signupFields').classList.toggle('hidden', isLoginMode);
+            document.getElementById('drvSubmitBtn').innerText = isLoginMode ? "Login Driver" : "Register Driver";
+            document.getElementById('toggleAuthText').innerText = isLoginMode ? "New driver? Register" : "Already registered? Login";
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const phone = document.getElementById('drvPhone').value.trim();
+            const password = document.getElementById('drvPass').value;
+            if (phone.length !== 11) { toast("Phone must be 11 digits"); return; }
+
+            const snap = await db.collection('za_drivers').where('phone', '==', phone).get();
+            if (!isLoginMode) {
+                const cnic = document.getElementById('drvCnic').value.trim();
+                if (cnic.length !== 13) { toast("CNIC must be 13 digits"); return; }
+                if (!snap.empty) { toast("Account already exists"); toggleAuthMode(); return; }
+
+                const name = document.getElementById('drvName').value.trim();
+                const vehicle = document.getElementById('drvVehicle').value;
+                const vehicleNumber = document.getElementById('drvVehicleNum').value.trim();
+                const dp = await compressImage(document.getElementById('drvDp').files[0]);
+                const cnicPic = await compressImage(document.getElementById('drvCnicPic').files[0]);
+                const vehiclePic = await compressImage(document.getElementById('drvVehiclePic').files[0]);
+                const copyPic = await compressImage(document.getElementById('drvCopyPic').files[0]);
+
+                const driverData = {
+                    name, phone, vehicle, vehicleNumber, password, dp, cnicPic, vehiclePic, copyPic,
+                    deviceId, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                await db.collection('za_drivers').add(driverData);
+                toast("Registered! Your account will be approved within 5 minutes.");
+                setTimeout(() => toggleAuthMode(), 5000);
+            } else {
+                if (snap.empty) { toast("Driver not found"); return; }
+                const driver = snap.docs[0].data();
+                if (driver.status === 'pending') { toast("Approval pending. Please wait."); return; }
+                if (driver.status === 'blocked') { toast("Account blocked"); return; }
+                if (driver.password !== password) { toast("Wrong password"); return; }
+
+                localStorage.setItem('za_driver_user', JSON.stringify(driver));
+                initDriverDashboard(driver);
+            }
+        }
+
+        function getDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function initDriverDashboard(driver) {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('navName').innerText = driver.name;
+            if (driver.dp) document.getElementById('navDp').src = driver.dp;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    driverLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                });
+            }
+
+            db.collection('za_rides').where('status', '==', 'searching').onSnapshot(snap => {
+                const list = document.getElementById('ridesFeedList'); list.innerHTML = '';
+                let count = 0;
+                snap.forEach(doc => {
+                    const ride = { id: doc.id, ...doc.data() };
+                    const dist = getDistanceKm(driverLocation.lat, driverLocation.lng, ride.pickup.lat, ride.pickup.lng);
+                    if (dist <= 4.0) {
+                        count++;
+                        list.innerHTML += `
+                            <div class="ride-card" onclick='openRidePreview(${JSON.stringify(ride)})'>
+                                <strong>${ride.passengerName}</strong> — <span style="color:#10b981;">PKR ${ride.offeredFare}</span>
+                                <div style="font-size:13px; color:#cbd5e1;">Pickup: ${ride.pickup.label} (${dist.toFixed(1)} km away)</div>
+                            </div>
+                        `;
+                    }
+                });
+                if (count === 0) list.innerHTML = `<p style="color:#64748b;">No rides within 4 km</p>`;
+            });
+        }
+
+        function openRidePreview(ride) {
+            selectedRide = ride;
+            document.getElementById('rideDetailPanel').style.display = 'block';
+            document.getElementById('driverBidInput').value = ride.offeredFare;
+            document.getElementById('rideTextDetails').innerHTML = `
+                <div><strong>Passenger:</strong> ${ride.passengerName}</div>
+                <div><strong>Pickup:</strong> ${ride.pickup.label}</div>
+                <div><strong>Drop:</strong> ${ride.drop.label}</div>
+            `;
+            if (!driverMap) {
+                driverMap = L.map('driverMap').setView([ride.pickup.lat, ride.pickup.lng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(driverMap);
+            }
+            setTimeout(() => driverMap.invalidateSize(), 200);
+        }
+
+        async function submitDriverBid() {
+            if (!selectedRide) return;
+            const driver = JSON.parse(localStorage.getItem('za_driver_user'));
+            const bidAmount = Number(document.getElementById('driverBidInput').value);
+
+            await db.collection('za_rides').doc(selectedRide.id).collection('bids').add({
+                driverName: driver.name, driverPhone: driver.phone, vehicleType: driver.vehicle,
+                vehicleNumber: driver.vehicleNumber, bidAmount, status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            toast("Offer sent to passenger!");
+
+            db.collection('za_rides').doc(selectedRide.id).onSnapshot(doc => {
+                if (doc.exists && doc.data().status === 'accepted') {
+                    activeRideId = selectedRide.id;
+                    document.getElementById('rideDetailPanel').style.display = 'none';
+                    document.getElementById('activeTripSection').classList.remove('hidden');
+                    document.getElementById('passengerInfoBox').innerHTML = `
+                        <p><strong>Passenger:</strong> ${selectedRide.passengerName}</p>
+                        <p><strong>Phone:</strong> <a href="tel:${selectedRide.passengerPhone}">${selectedRide.passengerPhone}</a></p>
+                    `;
+                    loadChat(activeRideId);
+                }
+            });
+        }
+
+        function startNavigation(type) {
+            if (!selectedRide) return;
+            const target = type === 'pickup' ? selectedRide.pickup : selectedRide.drop;
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}`, '_blank');
+        }
+
+        function markArrived() { toast("Passenger notified: I am here!"); }
+
+        function openProfileModal() {
+            closeMenu();
+            const d = JSON.parse(localStorage.getItem('za_driver_user'));
+            document.getElementById('modalContent').innerHTML = `
+                <h3>Driver Profile</h3>
+                <p><strong>Name:</strong> ${d.name}</p>
+                <p><strong>Phone:</strong> ${d.phone}</p>
+                <div class="input-group" style="margin-top:10px;"><label>Vehicle Number</label><input type="text" id="editVehNum" value="${d.vehicleNumber}"></div>
+                <button class="btn btn-primary" style="margin-top:10px;" onclick="updateDriverProfile()">Save Changes</button>
+            `;
+            document.getElementById('customModal').style.display = 'flex';
+        }
+
+        async function updateDriverProfile() {
+            const d = JSON.parse(localStorage.getItem('za_driver_user'));
+            const newNum = document.getElementById('editVehNum').value.trim();
+            const snap = await db.collection('za_drivers').where('phone', '==', d.phone).get();
+            snap.forEach(doc => doc.ref.update({ vehicleNumber: newNum }));
+            d.vehicleNumber = newNum; localStorage.setItem('za_driver_user', JSON.stringify(d));
+            toast("Profile updated!"); document.getElementById('customModal').style.display = 'none';
+        }
+
+        function openPerformanceModal() {
+            closeMenu();
+            document.getElementById('modalContent').innerHTML = `<h3>Performance</h3><p>Completed: 0</p>`;
+            document.getElementById('customModal').style.display = 'flex';
+        }
+
+        function openSupportModal() {
+            closeMenu();
+            document.getElementById('modalContent').innerHTML = `
+                <h3>Support</h3>
+                <textarea id="supportText" placeholder="Issue..." style="width:100%; height:80px; background:#0f172a; color:#fff; padding:8px; border-radius:8px;"></textarea>
+                <button class="btn btn-primary" style="margin-top:10px;" onclick="sendSupport()">Send</button>
+            `;
+            document.getElementById('customModal').style.display = 'flex';
+        }
+
+        async function sendSupport() {
+            const msg = document.getElementById('supportText').value.trim();
+            if (!msg) return;
+            const d = JSON.parse(localStorage.getItem('za_driver_user'));
+            await db.collection('messages').add({ name: d.name, phone: d.phone, message: msg, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            toast("Sent!"); document.getElementById('customModal').style.display = 'none';
+        }
+
+        function loadChat(rideId) {
+            db.collection('za_rides').doc(rideId).collection('chat').orderBy('createdAt', 'asc')
+            .onSnapshot(snap => {
+                const box = document.getElementById('chatMsgs'); box.innerHTML = '';
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    box.innerHTML += `<div class="msg ${m.sender === JSON.parse(localStorage.getItem('za_driver_user')).phone ? 'me' : 'them'}">${m.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        async function sendChatMsg() {
+            const inp = document.getElementById('chatInput'), text = inp.value.trim();
+            if (!text || !activeRideId) return;
+            const driver = JSON.parse(localStorage.getItem('za_driver_user'));
+            await db.collection('za_rides').doc(activeRideId).collection('chat').add({
+                sender: driver.phone, text, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            inp.value = '';
+        }
+
+        function logout() { localStorage.removeItem('za_driver_user'); location.reload(); }
+        window.onload = () => { const s = JSON.parse(localStorage.getItem('za_driver_user')); if (s) initDriverDashboard(s); };
+    </script>
+</body>
+</html>
