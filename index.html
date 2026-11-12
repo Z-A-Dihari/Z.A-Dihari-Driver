@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Z.A Dihari App - Driver</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f59e0b">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -28,6 +32,10 @@
         #dashboard { display: none; }
         header { background: #1e293b; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
         .user-dp { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; }
+        
+        /* Floating Install Banner */
+        #installBanner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #1e293b; color: #fff; padding: 14px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; z-index: 5000; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #f59e0b; }
+
         .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; background: #1e293b; overflow-x: hidden; transition: 0.3s; z-index: 2000; padding-top: 60px; border-right: 1px solid #334155; }
         .sidebar a { padding: 14px 22px; text-decoration: none; font-size: 15px; color: #cbd5e1; display: block; cursor: pointer; border-bottom: 1px solid #334155; }
         .sidebar a:hover { background: #334155; color: #f59e0b; }
@@ -48,13 +56,21 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; }
         .modal-box { background: #1e293b; padding: 24px; border-radius: 16px; max-width: 450px; width: 100%; border: 1px solid #334155; }
         #toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: #0f172a; padding: 10px 22px; border-radius: 25px; font-weight: 700; display: none; z-index: 4000; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="toast">Notification</div>
-    <div id="customModal" class="modal-overlay">
-        <div class="modal-box" id="modalContent"></div>
+    <!-- Floating Install Prompt Banner -->
+    <div id="installBanner">
+        <div>
+            <strong>Install Z.A Driver</strong>
+            <p style="font-size:12px; color:#94a3b8;">Add to home screen for quick access</p>
+        </div>
+        <button class="btn btn-primary" id="installBtn" style="width:auto; padding:8px 14px; font-size:13px;">Install</button>
     </div>
+
+    <div id="toast">Notification</div>
+    <div id="customModal" class="modal-overlay"><div class="modal-box" id="modalContent"></div></div>
 
     <div id="sideMenu" class="sidebar">
         <a onclick="closeMenu()" style="text-align:right; font-size:22px; color:#f59e0b;">&times;</a>
@@ -73,14 +89,14 @@
             </div>
             <form id="driverAuthForm" onsubmit="handleAuth(event)">
                 <div id="signupFields">
-                    <div class="input-group"><label>Full Name</label><input type="text" id="drvName" placeholder="Enter full name" required></div>
+                    <div class="input-group"><label>Full Name</label><input type="text" id="drvName" placeholder="Enter full name"></div>
                     <div class="input-group"><label>Vehicle Type</label><select id="drvVehicle"><option value="Rickshaw">Rickshaw</option><option value="Bike">Bike</option></select></div>
-                    <div class="input-group"><label>Vehicle / Rickshaw Number</label><input type="text" id="drvVehicleNum" placeholder="e.g. LE-21-5678" required></div>
-                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="drvCnic" maxlength="13" minlength="13" placeholder="3520212345671" required></div>
+                    <div class="input-group"><label>Vehicle / Rickshaw Number</label><input type="text" id="drvVehicleNum" placeholder="e.g. LE-21-5678"></div>
+                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="drvCnic" maxlength="13" minlength="13" placeholder="3520212345671"></div>
                     <div class="input-group"><label>Profile DP</label><input type="file" id="drvDp" accept="image/*"></div>
-                    <div class="input-group"><label>CNIC Pic</label><input type="file" id="drvCnicPic" accept="image/*" required></div>
-                    <div class="input-group"><label>Vehicle Pic</label><input type="file" id="drvVehiclePic" accept="image/*" required></div>
-                    <div class="input-group"><label>Registration Copy</label><input type="file" id="drvCopyPic" accept="image/*" required></div>
+                    <div class="input-group"><label>CNIC Pic</label><input type="file" id="drvCnicPic" accept="image/*"></div>
+                    <div class="input-group"><label>Vehicle Pic</label><input type="file" id="drvVehiclePic" accept="image/*"></div>
+                    <div class="input-group"><label>Registration Copy</label><input type="file" id="drvCopyPic" accept="image/*"></div>
                 </div>
                 <div class="input-group"><label>Phone Number (11 Digits)</label><input type="tel" id="drvPhone" maxlength="11" minlength="11" placeholder="03001234567" required></div>
                 <div class="input-group"><label>Password</label><input type="password" id="drvPass" placeholder="Password" required></div>
@@ -135,7 +151,24 @@
     </div>
 
     <script>
-        // Updated Firebase Config from your screenshot
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBanner').style.display = 'flex';
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    document.getElementById('installBanner').style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+
         const firebaseConfig = {
             apiKey: "AIzaSyDzga11KOZOxNJiUx_xeU39xCE6zkJDHjI",
             authDomain: "zadihari-5f746.firebaseapp.com",
@@ -376,7 +409,7 @@
             await db.collection('za_rides').doc(activeRideId).collection('chat').add({
                 sender: driver.phone, text, createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            inp.value = '';
+            inp.value = ''
         }
 
         function logout() { localStorage.removeItem('za_driver_user'); location.reload(); }
