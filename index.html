@@ -124,7 +124,7 @@
             <div id="activeTripSection" class="hidden" style="background:#1e293b; padding:18px; border-radius:16px; border:2px solid #10b981; margin-bottom:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <h4 style="color:#10b981;"><i class="fas fa-handshake"></i> Active Ride Confirmed</h4>
-                    <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="cancelRideByDriver()">Cancel Ride</button>
+                    <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="confirmCancelRide()">Cancel Ride</button>
                 </div>
                 <div id="passengerInfoBox" style="margin:10px 0; font-size:14px;"></div>
                 <div style="display:flex; gap:10px; margin-bottom:12px;">
@@ -148,6 +148,9 @@
         </div>
     </div>
 
+    <!-- Audio Beep Generator for Notifications -->
+    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
     <script>
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBanner').style.display = 'flex'; });
@@ -167,9 +170,14 @@
 
         let isLoginMode = false, driverLocation = { lat: 31.5204, lng: 74.3587 };
         let driverMap, selectedRide = null, activeRideId = localStorage.getItem('za_drv_active_ride') || null;
-        let hasBidAlready = false, bidTimer = null, tripStage = 'arrived'; // 'arrived' or 'complete'
+        let hasBidAlready = false, bidTimer = null, tripStage = 'arrived';
+        let lastMsgCount = 0;
 
         function toast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
+        function playSound() {
+            const audio = document.getElementById('notifSound');
+            if (audio) audio.play().catch(e => console.log(e));
+        }
         function openMenu() { document.getElementById('sideMenu').style.width = '250px'; }
         function closeMenu() { document.getElementById('sideMenu').style.width = '0'; }
         function closeModal() { document.getElementById('customModal').style.display = 'none'; }
@@ -253,8 +261,13 @@
 
             if (activeRideId) {
                 db.collection('za_rides').doc(activeRideId).onSnapshot(doc => {
-                    if (!doc.exists || doc.data().status === 'cancelled' || doc.data().status === 'completed') {
+                    if (!doc.exists || doc.data().status === 'cancelled') {
                         localStorage.removeItem('za_drv_active_ride');
+                        alert("Ride was cancelled by passenger.");
+                        location.reload();
+                    } else if (doc.data().status === 'completed') {
+                        localStorage.removeItem('za_drv_active_ride');
+                        alert("Ride Completed Successfully!");
                         location.reload();
                     } else {
                         const ride = doc.data();
@@ -315,10 +328,10 @@
                 const carIcon = L.divIcon({ html: '<i class="fas fa-taxi" style="font-size:20px;color:#f59e0b;"></i>', iconSize: [30,30] });
                 L.marker([driverLocation.lat, driverLocation.lng], {icon: carIcon}).addTo(driverMap);
 
-                const iconA = L.divIcon({ html: `<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">A (${distToPickup}km)</div>`, iconSize: [50, 30] });
+                const iconA = L.divIcon({ html: `<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:6px;font-weight:bold;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);">A (${distToPickup}km)</div>`, iconSize: [60, 30] });
                 L.marker([ride.pickup.lat, ride.pickup.lng], {icon: iconA}).addTo(driverMap);
 
-                const iconB = L.divIcon({ html: `<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">B (${ride.distanceKm}km)</div>`, iconSize: [50, 30] });
+                const iconB = L.divIcon({ html: `<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:6px;font-weight:bold;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);">B (${ride.distanceKm}km)</div>`, iconSize: [60, 30] });
                 L.marker([ride.drop.lat, ride.drop.lng], {icon: iconB}).addTo(driverMap);
 
                 if (data1.routes && data1.routes[0]) {
@@ -359,6 +372,7 @@
             db.collection('za_rides').doc(selectedRide.id).onSnapshot(doc => {
                 if (doc.exists && doc.data().status === 'accepted') {
                     clearTimeout(bidTimer);
+                    playSound();
                     activeRideId = selectedRide.id;
                     localStorage.setItem('za_drv_active_ride', activeRideId);
                     showActiveRideView(doc.data());
@@ -392,11 +406,18 @@
         function handleArrivedOrComplete() {
             if (tripStage === 'arrived') {
                 toast("Passenger notified: I am here!");
+                playSound();
                 const btn = document.getElementById('arrivedCompleteBtn');
                 btn.innerText = "Complete Ride";
                 btn.style.background = "#ef4444";
                 tripStage = 'complete';
             } else {
+                confirmCompleteRide();
+            }
+        }
+
+        function confirmCompleteRide() {
+            if (confirm("Are you sure you want to complete this ride?")) {
                 completeRide();
             }
         }
@@ -407,6 +428,12 @@
             localStorage.removeItem('za_drv_active_ride');
             alert("Ride Completed Successfully!");
             location.reload();
+        }
+
+        function confirmCancelRide() {
+            if (confirm("Are you sure you want to cancel this active ride?")) {
+                cancelRideByDriver();
+            }
         }
 
         async function cancelRideByDriver() {
@@ -465,6 +492,10 @@
             db.collection('za_rides').doc(rideId).collection('chat').orderBy('createdAt', 'asc')
             .onSnapshot(snap => {
                 const box = document.getElementById('chatMsgs'); box.innerHTML = '';
+                if (snap.size > lastMsgCount && lastMsgCount !== 0) {
+                    playSound(); // Sound alert on new message
+                }
+                lastMsgCount = snap.size;
                 snap.forEach(doc => {
                     const m = doc.data();
                     box.innerHTML += `<div class="msg ${m.sender === JSON.parse(localStorage.getItem('za_driver_user')).phone ? 'me' : 'them'}">${m.text}</div>`;
