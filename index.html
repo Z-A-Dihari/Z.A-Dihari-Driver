@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Z.A Dihari App - Driver</title>
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,73 +30,50 @@
         #dashboard { display: none; }
         header { background: #1e293b; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
         .user-dp { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; }
-        
-        /* Floating Install Banner */
-        #installBanner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #1e293b; color: #fff; padding: 14px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; z-index: 5000; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #f59e0b; }
-
+        #installBanner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #1e293b; color: #fff; padding: 14px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; z-index: 5000; border: 1px solid #f59e0b; }
         .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; background: #1e293b; overflow-x: hidden; transition: 0.3s; z-index: 2000; padding-top: 60px; border-right: 1px solid #334155; }
         .sidebar a { padding: 14px 22px; text-decoration: none; font-size: 15px; color: #cbd5e1; display: block; cursor: pointer; border-bottom: 1px solid #334155; }
-        .sidebar a:hover { background: #334155; color: #f59e0b; }
         .container { max-width: 650px; margin: 20px auto; padding: 0 15px; }
         .radar-box { text-align: center; padding: 40px 20px; background: #1e293b; border-radius: 16px; border: 1px solid #334155; margin-bottom: 20px; }
         .radar-spinner { width: 70px; height: 70px; border: 4px solid #334155; border-top: 4px solid #f59e0b; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .ride-card { background: #1e293b; padding: 16px; border-radius: 14px; border: 1px solid #334155; margin-bottom: 12px; cursor: pointer; }
         #rideDetailPanel { display: none; background: #1e293b; padding: 18px; border-radius: 16px; border: 1px solid #f59e0b; margin-bottom: 20px; }
-        #driverMap { height: 240px; width: 100%; border-radius: 12px; margin: 12px 0; }
+        #driverMap { height: 260px; width: 100%; border-radius: 12px; margin: 12px 0; }
         .chat-box { border: 1px solid #334155; border-radius: 12px; overflow: hidden; background: #0f172a; margin-top: 15px; }
-        .chat-msgs { height: 220px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msgs { height: 200px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
         .msg { padding: 8px 12px; border-radius: 10px; max-width: 78%; font-size: 13px; }
         .msg.me { background: #f59e0b; color: #0f172a; font-weight: 600; align-self: flex-end; }
         .msg.them { background: #1e293b; color: #fff; align-self: flex-start; }
         .chat-controls { display: flex; padding: 8px; gap: 6px; background: #1e293b; }
         .chat-controls input { flex: 1; padding: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; }
-        .modal-box { background: #1e293b; padding: 24px; border-radius: 16px; max-width: 450px; width: 100%; border: 1px solid #334155; }
-        #toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: #0f172a; padding: 10px 22px; border-radius: 25px; font-weight: 700; display: none; z-index: 4000; }
+        #toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: #0f172a; padding: 12px 24px; border-radius: 25px; font-weight: 700; display: none; z-index: 4000; text-align: center; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- Floating Install Prompt Banner -->
     <div id="installBanner">
-        <div>
-            <strong>Install Z.A Driver</strong>
-            <p style="font-size:12px; color:#94a3b8;">Add to home screen for quick access</p>
-        </div>
-        <button class="btn btn-primary" id="installBtn" style="width:auto; padding:8px 14px; font-size:13px;">Install</button>
+        <div><strong>Install Z.A Driver</strong><p style="font-size:12px; color:#94a3b8;">Add to home screen</p></div>
+        <button class="btn btn-primary" id="installBtn" style="width:auto; padding:8px 14px;">Install</button>
     </div>
-
     <div id="toast">Notification</div>
-    <div id="customModal" class="modal-overlay"><div class="modal-box" id="modalContent"></div></div>
 
     <div id="sideMenu" class="sidebar">
         <a onclick="closeMenu()" style="text-align:right; font-size:22px; color:#f59e0b;">&times;</a>
-        <a onclick="openProfileModal()"><i class="fas fa-user-circle"></i> Profile</a>
-        <a onclick="openPerformanceModal()"><i class="fas fa-chart-line"></i> Performance & History</a>
-        <a onclick="openSupportModal()"><i class="fas fa-headset"></i> Support</a>
         <a onclick="logout()" style="color:#ef4444;"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 
     <div id="authScreen" class="auth-wrap">
         <div class="auth-card">
-            <div class="brand-logo">
-                <i class="fas fa-motorcycle"></i>
-                <h2>Z.A Dihari App</h2>
-                <p style="font-size:13px; color:#94a3b8;">Driver Portal</p>
-            </div>
+            <div class="brand-logo"><i class="fas fa-motorcycle"></i><h2>Z.A Dihari App</h2><p style="font-size:13px; color:#94a3b8;">Driver Portal</p></div>
             <form id="driverAuthForm" onsubmit="handleAuth(event)">
                 <div id="signupFields">
                     <div class="input-group"><label>Full Name</label><input type="text" id="drvName" placeholder="Enter full name"></div>
                     <div class="input-group"><label>Vehicle Type</label><select id="drvVehicle"><option value="Rickshaw">Rickshaw</option><option value="Bike">Bike</option></select></div>
-                    <div class="input-group"><label>Vehicle / Rickshaw Number</label><input type="text" id="drvVehicleNum" placeholder="e.g. LE-21-5678"></div>
-                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="drvCnic" maxlength="13" minlength="13" placeholder="3520212345671"></div>
-                    <div class="input-group"><label>Profile DP</label><input type="file" id="drvDp" accept="image/*"></div>
-                    <div class="input-group"><label>CNIC Pic</label><input type="file" id="drvCnicPic" accept="image/*"></div>
-                    <div class="input-group"><label>Vehicle Pic</label><input type="file" id="drvVehiclePic" accept="image/*"></div>
-                    <div class="input-group"><label>Registration Copy</label><input type="file" id="drvCopyPic" accept="image/*"></div>
+                    <div class="input-group"><label>Vehicle Number</label><input type="text" id="drvVehicleNum" placeholder="LE-21-5678"></div>
+                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="drvCnic" maxlength="13" placeholder="3520212345671"></div>
                 </div>
-                <div class="input-group"><label>Phone Number (11 Digits)</label><input type="tel" id="drvPhone" maxlength="11" minlength="11" placeholder="03001234567" required></div>
+                <div class="input-group"><label>Phone Number (11 Digits)</label><input type="tel" id="drvPhone" maxlength="11" placeholder="03001234567" required></div>
                 <div class="input-group"><label>Password</label><input type="password" id="drvPass" placeholder="Password" required></div>
                 <button type="submit" class="btn btn-primary" id="drvSubmitBtn">Register Driver</button>
             </form>
@@ -115,59 +90,50 @@
             </div>
         </header>
         <div class="container">
-            <div class="radar-box">
+            <div class="radar-box" id="radarBoxSection">
                 <div class="radar-spinner"></div>
                 <h3 style="color:#f59e0b;">Finding a Passenger...</h3>
                 <p style="font-size:13px; color:#94a3b8; margin-top:5px;">Scanning nearby ride requests</p>
             </div>
+
             <div id="rideDetailPanel">
-                <h4><i class="fas fa-route"></i> Ride Route Preview</h4>
+                <h4><i class="fas fa-route"></i> Route Preview (Green: You to A | Blue: A to B)</h4>
                 <div id="driverMap"></div>
                 <div id="rideTextDetails" style="font-size:13px; line-height:1.6; background:#0f172a; padding:12px; border-radius:10px; margin-bottom:12px;"></div>
-                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <div style="display:flex; gap:8px; margin-bottom:12px;" id="bidActionRow">
                     <input type="number" id="driverBidInput" style="flex:1; padding:11px; background:#0f172a; border:1px solid #f59e0b; border-radius:8px; color:#fff;">
-                    <button class="btn btn-success" style="width:auto;" onclick="submitDriverBid()">Send Offer</button>
+                    <button class="btn btn-success" id="sendBidBtn" style="width:auto;" onclick="submitDriverBid()">Send Offer</button>
                 </div>
             </div>
+
             <div id="activeTripSection" class="hidden" style="background:#1e293b; padding:18px; border-radius:16px; border:2px solid #10b981; margin-bottom:20px;">
                 <h4 style="color:#10b981;"><i class="fas fa-handshake"></i> Active Ride Confirmed</h4>
                 <div id="passengerInfoBox" style="margin:10px 0; font-size:14px;"></div>
                 <div style="display:flex; gap:10px; margin-bottom:12px;">
-                    <button class="btn btn-primary" onclick="startNavigation('pickup')">Navigate to Pickup</button>
+                    <button class="btn btn-primary" onclick="startNavigation('pickup')">Navigate to A (Pickup)</button>
                     <button class="btn btn-success" onclick="markArrived()">I am here</button>
-                    <button class="btn btn-primary" onclick="startNavigation('drop')">Navigate to Drop</button>
+                    <button class="btn btn-primary" onclick="startNavigation('drop')">Navigate to B (Drop)</button>
                 </div>
                 <div class="chat-box">
                     <div class="chat-msgs" id="chatMsgs"></div>
                     <div class="chat-controls">
-                        <input type="text" id="chatInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendChatMsg()">
+                        <input type="text" id="chatInput" placeholder="Message passenger..." onkeypress="if(event.key==='Enter') sendChatMsg()">
                         <button class="btn btn-primary" style="width:auto; padding:0 14px;" onclick="sendChatMsg()">Send</button>
                     </div>
                 </div>
             </div>
-            <h4 style="margin-bottom:12px; color:#cbd5e1;">Nearby Rides (4 km)</h4>
-            <div id="ridesFeedList"><p style="color:#64748b;">Scanning...</p></div>
+
+            <div id="nearbyRidesContainer">
+                <h4 style="margin-bottom:12px; color:#cbd5e1;">Nearby Rides (4 km)</h4>
+                <div id="ridesFeedList"><p style="color:#64748b;">Scanning...</p></div>
+            </div>
         </div>
     </div>
 
     <script>
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBanner').style.display = 'flex';
-        });
-
-        document.getElementById('installBtn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('installBanner').style.display = 'none';
-                }
-                deferredPrompt = null;
-            }
-        });
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBanner').style.display = 'flex'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { if (deferredPrompt) { deferredPrompt.prompt(); document.getElementById('installBanner').style.display = 'none'; deferredPrompt = null; } });
 
         const firebaseConfig = {
             apiKey: "AIzaSyDzga11KOZOxNJiUx_xeU39xCE6zkJDHjI",
@@ -185,30 +151,12 @@
         localStorage.setItem('za_drv_device_id', deviceId);
 
         let isLoginMode = false, driverLocation = { lat: 31.5204, lng: 74.3587 };
-        let driverMap, selectedRide = null, activeRideId = null;
+        let driverMap, selectedRide = null, activeRideId = localStorage.getItem('za_drv_active_ride') || null;
+        let hasBidAlready = false, bidTimer = null;
 
-        function toast(msg) {
-            const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
+        function toast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
         function openMenu() { document.getElementById('sideMenu').style.width = '250px'; }
         function closeMenu() { document.getElementById('sideMenu').style.width = '0'; }
-
-        function compressImage(file) {
-            return new Promise((resolve) => {
-                if (!file) { resolve(''); return; }
-                const reader = new FileReader(); reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image(); img.src = e.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas'); const scale = 300 / img.width;
-                        canvas.width = 300; canvas.height = img.height * scale;
-                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.65));
-                    };
-                };
-            });
-        }
 
         function toggleAuthMode() {
             isLoginMode = !isLoginMode;
@@ -232,23 +180,16 @@
                 const name = document.getElementById('drvName').value.trim();
                 const vehicle = document.getElementById('drvVehicle').value;
                 const vehicleNumber = document.getElementById('drvVehicleNum').value.trim();
-                const dp = await compressImage(document.getElementById('drvDp').files[0]);
-                const cnicPic = await compressImage(document.getElementById('drvCnicPic').files[0]);
-                const vehiclePic = await compressImage(document.getElementById('drvVehiclePic').files[0]);
-                const copyPic = await compressImage(document.getElementById('drvCopyPic').files[0]);
 
-                const driverData = {
-                    name, phone, vehicle, vehicleNumber, password, dp, cnicPic, vehiclePic, copyPic,
-                    deviceId, status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
+                const driverData = { name, phone, vehicle, vehicleNumber, password, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                 await db.collection('za_drivers').add(driverData);
-                toast("Registered! Your account will be approved within 5 minutes.");
-                setTimeout(() => toggleAuthMode(), 5000);
+                toast("Account active! Start earning now.");
+                localStorage.setItem('za_driver_user', JSON.stringify(driverData));
+                setTimeout(() => initDriverDashboard(driverData), 2000);
             } else {
                 if (snap.empty) { toast("Driver not found"); return; }
                 const driver = snap.docs[0].data();
-                if (driver.status === 'pending') { toast("Approval pending. Please wait."); return; }
-                if (driver.status === 'blocked') { toast("Account blocked"); return; }
+                if (driver.status === 'blocked') { toast("Account blocked by admin."); return; }
                 if (driver.password !== password) { toast("Wrong password"); return; }
 
                 localStorage.setItem('za_driver_user', JSON.stringify(driver));
@@ -266,11 +207,24 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             document.getElementById('navName').innerText = driver.name;
-            if (driver.dp) document.getElementById('navDp').src = driver.dp;
 
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
+                navigator.geolocation.watchPosition(pos => {
                     driverLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    if (activeRideId) {
+                        db.collection('za_rides').doc(activeRideId).update({ driverLocation });
+                    }
+                }, err => {}, { enableHighAccuracy: true });
+            }
+
+            if (activeRideId) {
+                db.collection('za_rides').doc(activeRideId).get().then(doc => {
+                    if (doc.exists && doc.data().status === 'accepted') {
+                        showActiveRideView(doc.data());
+                    } else {
+                        localStorage.removeItem('za_drv_active_ride');
+                        activeRideId = null;
+                    }
                 });
             }
 
@@ -283,9 +237,9 @@
                     if (dist <= 4.0) {
                         count++;
                         list.innerHTML += `
-                            <div class="ride-card" onclick='openRidePreview(${JSON.stringify(ride)})'>
+                            <div class="ride-card" onclick='openRidePreview(${JSON.stringify(ride)}, ${dist.toFixed(1)})'>
                                 <strong>${ride.passengerName}</strong> — <span style="color:#10b981;">PKR ${ride.offeredFare}</span>
-                                <div style="font-size:13px; color:#cbd5e1;">Pickup: ${ride.pickup.label} (${dist.toFixed(1)} km away)</div>
+                                <div style="font-size:13px; color:#cbd5e1;">Pickup (A): ${ride.pickup.label} (${dist.toFixed(1)} km away)</div>
                             </div>
                         `;
                     }
@@ -294,46 +248,111 @@
             });
         }
 
-        function openRidePreview(ride) {
+        async function openRidePreview(ride, distToPickup) {
             selectedRide = ride;
+            hasBidAlready = false;
             document.getElementById('rideDetailPanel').style.display = 'block';
             document.getElementById('driverBidInput').value = ride.offeredFare;
+            document.getElementById('driverBidInput').disabled = false;
+            document.getElementById('sendBidBtn').disabled = false;
+            document.getElementById('sendBidBtn').innerText = "Send Offer";
+
             document.getElementById('rideTextDetails').innerHTML = `
                 <div><strong>Passenger:</strong> ${ride.passengerName}</div>
-                <div><strong>Pickup:</strong> ${ride.pickup.label}</div>
-                <div><strong>Drop:</strong> ${ride.drop.label}</div>
+                <div><strong>Pickup (A):</strong> ${ride.pickup.label} (<span style="color:#10b981;">${distToPickup} km away</span>)</div>
+                <div><strong>Drop (B):</strong> ${ride.drop.label} (${ride.distanceKm} km trip)</div>
             `;
+
             if (!driverMap) {
-                driverMap = L.map('driverMap').setView([ride.pickup.lat, ride.pickup.lng], 13);
+                driverMap = L.map('driverMap').setView([driverLocation.lat, driverLocation.lng], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(driverMap);
             }
             setTimeout(() => driverMap.invalidateSize(), 200);
+
+            // Draw Green Line (Driver to A) and Blue Line (A to B) with markers A and B
+            try {
+                // Fetch driver to A route (Green)
+                const res1 = await fetch(`https://router.project-osrm.org/route/v1/driving/${driverLocation.lng},${driverLocation.lat};${ride.pickup.lng},${ride.pickup.lat}?overview=full&geometries=geojson`);
+                const data1 = await res1.json();
+                
+                // Fetch A to B route (Blue)
+                const res2 = await fetch(`https://router.project-osrm.org/route/v1/driving/${ride.pickup.lng},${ride.pickup.lat};${ride.drop.lng},${ride.drop.lat}?overview=full&geometries=geojson`);
+                const data2 = await res2.json();
+
+                driverMap.eachLayer(layer => { if (layer instanceof L.Polyline || layer instanceof L.Marker) driverMap.removeLayer(layer); });
+
+                // Car marker at Driver location
+                const carIcon = L.divIcon({ html: '<i class="fas fa-taxi" style="font-size:20px;color:#f59e0b;"></i>', iconSize: [30,30] });
+                L.marker([driverLocation.lat, driverLocation.lng], {icon: carIcon}).addTo(driverMap).bindPopup("Your Location");
+
+                // Marker A
+                const iconA = L.divIcon({ html: `<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">A</div>`, iconSize: [30,30] });
+                L.marker([ride.pickup.lat, ride.pickup.lng], {icon: iconA}).addTo(driverMap).bindPopup(`Pickup (A): ${distToPickup} km away`);
+
+                // Marker B
+                const iconB = L.divIcon({ html: `<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">B</div>`, iconSize: [30,30] });
+                L.marker([ride.drop.lat, ride.drop.lng], {icon: iconB}).addTo(driverMap).bindPopup(`Drop (B): ${ride.distanceKm} km`);
+
+                if (data1.routes && data1.routes[0]) {
+                    const coords1 = data1.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    L.polyline(coords1, { color: '#10b981', weight: 5 }).addTo(driverMap); // Green line
+                }
+                if (data2.routes && data2.routes[0]) {
+                    const coords2 = data2.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    L.polyline(coords2, { color: '#3b82f6', weight: 5 }).addTo(driverMap); // Blue line
+                }
+            } catch (err) { console.log(err); }
         }
 
         async function submitDriverBid() {
-            if (!selectedRide) return;
+            if (!selectedRide || hasBidAlready) return;
+            hasBidAlready = true;
             const driver = JSON.parse(localStorage.getItem('za_driver_user'));
             const bidAmount = Number(document.getElementById('driverBidInput').value);
 
-            await db.collection('za_rides').doc(selectedRide.id).collection('bids').add({
+            const bidRef = await db.collection('za_rides').doc(selectedRide.id).collection('bids').add({
                 driverName: driver.name, driverPhone: driver.phone, vehicleType: driver.vehicle,
                 vehicleNumber: driver.vehicleNumber, bidAmount, status: 'pending',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            toast("Offer sent to passenger!");
 
+            toast("Offer sent! Waiting for passenger (10s timer)...");
+            document.getElementById('driverBidInput').disabled = true;
+            document.getElementById('sendBidBtn').disabled = true;
+            document.getElementById('sendBidBtn').innerText = "Offer Sent";
+
+            // 10 seconds timer for automatic decline if not accepted
+            bidTimer = setTimeout(async () => {
+                const bDoc = await db.collection('za_rides').doc(selectedRide.id).collection('bids').doc(bidRef.id).get();
+                if (bDoc.exists && bDoc.data().status === 'pending') {
+                    await bidRef.update({ status: 'expired' });
+                    toast("Offer expired (10s passed).");
+                    document.getElementById('rideDetailPanel').style.display = 'none';
+                }
+            }, 10000);
+
+            // Listen if accepted
             db.collection('za_rides').doc(selectedRide.id).onSnapshot(doc => {
                 if (doc.exists && doc.data().status === 'accepted') {
+                    clearTimeout(bidTimer);
                     activeRideId = selectedRide.id;
-                    document.getElementById('rideDetailPanel').style.display = 'none';
-                    document.getElementById('activeTripSection').classList.remove('hidden');
-                    document.getElementById('passengerInfoBox').innerHTML = `
-                        <p><strong>Passenger:</strong> ${selectedRide.passengerName}</p>
-                        <p><strong>Phone:</strong> <a href="tel:${selectedRide.passengerPhone}">${selectedRide.passengerPhone}</a></p>
-                    `;
-                    loadChat(activeRideId);
+                    localStorage.setItem('za_drv_active_ride', activeRideId);
+                    showActiveRideView(doc.data());
                 }
             });
+        }
+
+        function showActiveRideView(ride) {
+            document.getElementById('radarBoxSection').style.display = 'none';
+            document.getElementById('nearbyRidesContainer').style.display = 'none';
+            document.getElementById('rideDetailPanel').style.display = 'none';
+            document.getElementById('activeTripSection').classList.remove('hidden');
+            document.getElementById('passengerInfoBox').innerHTML = `
+                <p><strong>Passenger:</strong> ${ride.passengerName}</p>
+                <p><strong>Phone:</strong> <a href="tel:${ride.passengerPhone}">${ride.passengerPhone}</a></p>
+                <p><strong>Fare:</strong> PKR ${ride.finalFare}</p>
+            `;
+            loadChat(activeRideId);
         }
 
         function startNavigation(type) {
@@ -343,52 +362,6 @@
         }
 
         function markArrived() { toast("Passenger notified: I am here!"); }
-
-        function openProfileModal() {
-            closeMenu();
-            const d = JSON.parse(localStorage.getItem('za_driver_user'));
-            document.getElementById('modalContent').innerHTML = `
-                <h3>Driver Profile</h3>
-                <p><strong>Name:</strong> ${d.name}</p>
-                <p><strong>Phone:</strong> ${d.phone}</p>
-                <div class="input-group" style="margin-top:10px;"><label>Vehicle Number</label><input type="text" id="editVehNum" value="${d.vehicleNumber}"></div>
-                <button class="btn btn-primary" style="margin-top:10px;" onclick="updateDriverProfile()">Save Changes</button>
-            `;
-            document.getElementById('customModal').style.display = 'flex';
-        }
-
-        async function updateDriverProfile() {
-            const d = JSON.parse(localStorage.getItem('za_driver_user'));
-            const newNum = document.getElementById('editVehNum').value.trim();
-            const snap = await db.collection('za_drivers').where('phone', '==', d.phone).get();
-            snap.forEach(doc => doc.ref.update({ vehicleNumber: newNum }));
-            d.vehicleNumber = newNum; localStorage.setItem('za_driver_user', JSON.stringify(d));
-            toast("Profile updated!"); document.getElementById('customModal').style.display = 'none';
-        }
-
-        function openPerformanceModal() {
-            closeMenu();
-            document.getElementById('modalContent').innerHTML = `<h3>Performance</h3><p>Completed: 0</p>`;
-            document.getElementById('customModal').style.display = 'flex';
-        }
-
-        function openSupportModal() {
-            closeMenu();
-            document.getElementById('modalContent').innerHTML = `
-                <h3>Support</h3>
-                <textarea id="supportText" placeholder="Issue..." style="width:100%; height:80px; background:#0f172a; color:#fff; padding:8px; border-radius:8px;"></textarea>
-                <button class="btn btn-primary" style="margin-top:10px;" onclick="sendSupport()">Send</button>
-            `;
-            document.getElementById('customModal').style.display = 'flex';
-        }
-
-        async function sendSupport() {
-            const msg = document.getElementById('supportText').value.trim();
-            if (!msg) return;
-            const d = JSON.parse(localStorage.getItem('za_driver_user'));
-            await db.collection('messages').add({ name: d.name, phone: d.phone, message: msg, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            toast("Sent!"); document.getElementById('customModal').style.display = 'none';
-        }
 
         function loadChat(rideId) {
             db.collection('za_rides').doc(rideId).collection('chat').orderBy('createdAt', 'asc')
@@ -409,10 +382,10 @@
             await db.collection('za_rides').doc(activeRideId).collection('chat').add({
                 sender: driver.phone, text, createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            inp.value = ''
+            inp.value = '';
         }
 
-        function logout() { localStorage.removeItem('za_driver_user'); location.reload(); }
+        function logout() { localStorage.clear(); location.reload(); }
         window.onload = () => { const s = JSON.parse(localStorage.getItem('za_driver_user')); if (s) initDriverDashboard(s); };
     </script>
 </body>
